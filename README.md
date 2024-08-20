@@ -1,4 +1,4 @@
-Hier ist ein Vorschlag für eine umfassende GitHub README-Datei für dein Projekt **"Elementar-Schlacht"**:
+
 
 ---
 
