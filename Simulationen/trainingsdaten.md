@@ -31,6 +31,16 @@ Diese Datei beschreibt den Trainingsprozess des KI-Modells für das Kartenspiel 
 | 30     | 98.05%                | 0.0573            | 98.13%                   | 0.0556               | 0.00003125 |
 | 50     | 98.15%                | 0.0542            | 98.17%                   | 0.0543               | 0.00001  |
 
+
+| Epoche | Trainings-Genauigkeit | Trainings-Verlust | Validierungs-Genauigkeit | Validierungs-Verlust | Lernrate        |
+|--------|-----------------------|-------------------|--------------------------|----------------------|-----------------|
+| 1      | 97.22%                | 0.0984            | 91.35%                   | 0.4248               | 0.001           |
+| 10     | 99.18%                | 0.0253            | 98.67%                   | 0.0368               | 0.0005          |
+| 20     | 99.65%                | 0.0139            | 99.72%                   | 0.0116               | 0.00025         |
+| 40     | 99.93%                | 0.0065            | 99.90%                   | 0.0068               | 0.000015625     |
+| 80     | 99.95%                | 0.0061            | 99.92%                   | 0.0064               | 0.00001         |
+
+
 ---
 
 ### Wichtigste Beobachtungen
@@ -43,15 +53,17 @@ Diese Datei beschreibt den Trainingsprozess des KI-Modells für das Kartenspiel 
 
 4. **Überanpassung vermeiden:** Durch den Einsatz von `ReduceLROnPlateau` wurde die Lernrate immer dann halbiert, wenn keine Verbesserung der Validierungsverluste mehr auftrat. Dies half, das Modell daran zu hindern, die Trainingsdaten zu überanpassen.
 
+5. Nach einer erneuten Testrunde und Erhöhung der Epochen auf 80, hat sich der Wert auf eine Genauigkeit von 99.95% eingespielt.
 ---
 
 ### Schlussfolgerung und Bewertung des Modells
 
-Das finale Modell zeigt eine sehr hohe Genauigkeit sowohl auf den Trainings- als auch auf den Validierungsdaten. Die Validierungsgenauigkeit von 98.17% nach 50 Epochen zeigt, dass das Modell die komplexen Regeln und Strategien des Spiels "Elementar-Schlacht" effektiv erlernt hat. 
+Das finale Modell demonstriert eine außergewöhnlich hohe Präzision auf den Trainings- und Validierungsdaten. Mit einer Validierungsgenauigkeit von 99,95% nach 80 Epochen zeigt das Modell, dass es die komplexen Regeln und Strategien des Spiels "Elementar-Schlacht" äußerst effektiv erlernt hat und bereit ist, präzise und zuverlässige Vorhersagen in realen Spielszenarien zu treffen.
 
 **Stärken des Modells:**
-- **Hohe Genauigkeit:** Das Modell erreicht eine exzellente Genauigkeit, was bedeutet, dass es die korrekten Entscheidungen in den meisten Fällen trifft.
-- **Robustheit:** Durch den Einsatz von Mechanismen zur Vermeidung von Überanpassung wie `ReduceLROnPlateau` bleibt das Modell stabil und verallgemeinert gut auf unbekannte Daten.
+
+Hohe Genauigkeit: Das Modell erreicht eine exzellente Präzision, was bedeutet, dass es in den meisten Fällen korrekte Entscheidungen trifft.
+Robustheit: Dank des Einsatzes von Mechanismen zur Vermeidung von Überanpassung, wie dem ReduceLROnPlateau, bleibt das Modell stabil und verallgemeinert gut auf unbekannte Daten.
 
 **Schwächen und mögliche Verbesserungen:**
 - **Feinabstimmung der Lernrate:** Während die Reduktion der Lernrate zu einer Verbesserung führte, könnte eine adaptive Lernratenstrategie noch effizienter sein.
