@@ -58,7 +58,7 @@ Diese Datei beschreibt den Trainingsprozess des KI-Modells für das Kartenspiel 
 
 ### Schlussfolgerung und Bewertung des Modells
 
-Das finale Modell demonstriert eine außergewöhnlich hohe Präzision auf den Trainings- und Validierungsdaten. Mit einer Validierungsgenauigkeit von 99,95% nach 80 Epochen zeigt das Modell, dass es die komplexen Regeln und Strategien des Spiels "Elementar-Schlacht" äußerst effektiv erlernt hat und bereit ist, präzise und zuverlässige Vorhersagen in realen Spielszenarien zu treffen.
+Das finale Modell demonstriert eine außergewöhnlich hohe Präzision auf den Trainings- und Validierungsdaten. Mit einer Validierungsgenauigkeit von 99,95% nach 80 Epochen zeigt das Modell, dass es die komplexen Regeln und Strategien des Spiels "Elementar-Schlacht" äußerst effektiv erlernt hat und bereit ist, präzise und zuverlässige Vorhersagen in realen Spielszenarien zu treffen. Dieses beeindruckende Ergebnis wurde durch wiederholte Trainingszyklen und insgesamt 3 Stunden Training erzielt.
 
 **Stärken des Modells:**
 
