@@ -213,8 +213,10 @@ def spiele_gegen_ki():
         winner = bestimme_gewinner(spieler_karte, gegner_karte)
         if winner == "spieler":
             print(f"{FARBE_GEWINNER_SPIELER}Der Gewinner des Schlages ist: {winner}{FARBE_RESET}")
-        else:
+        elif winner == "gegner":
             print(f"{FARBE_GEWINNER_KI}Der Gewinner des Schlages ist: {winner}{FARBE_RESET}")
+        else:
+            print(f"{FARBE_STAND}Der Schlag endet unentschieden.{FARBE_RESET}")
 
         # Anwenden der Effekte basierend auf dem Element der Karte.
         spieler_token, gegner_token = wende_element_effekt_an(
@@ -222,18 +224,18 @@ def spiele_gegen_ki():
         )
 
         if talon:  # Karten nachziehen, wenn noch Karten im Talon sind.
-            if len(spieler_hand) < 4:
+            if len(spieler_hand) < 4 and talon:
                 spieler_hand.append(talon.pop())
-            if len(gegner_hand) < 4:
+            if len(gegner_hand) < 4 and talon:
                 gegner_hand.append(talon.pop())
 
         # Zeigt die aktualisierte Hand des Spielers an.
         print(f"{FARBE_STAND}\nDeine aktualisierten Karten: {spieler_hand}{FARBE_RESET}")
 
     # Spielende
-    if spieler_token > 0 and not gegner_hand:
+    if spieler_token > gegner_token:
         print(f"{FARBE_GEWINNER_SPIELER}\nGlückwunsch! Du hast gegen die KI gewonnen!{FARBE_RESET}")
-    elif gegner_token > 0 and not spieler_hand:
+    elif gegner_token > spieler_token:
         print(f"{FARBE_GEWINNER_KI}\nDie KI hat gewonnen. Versuch es noch einmal!{FARBE_RESET}")
     else:
         print(f"{FARBE_STAND}\nDas Spiel endet in einem Unentschieden.{FARBE_RESET}")
