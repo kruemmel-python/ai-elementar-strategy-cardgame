@@ -9,7 +9,7 @@ import numpy as np  # Importiert NumPy für numerische Operationen und die Arbei
 
 # Definition der Karten und Elemente
 ELEMENTE = ["Feuer", "Wasser", "Erde", "Luft"]  # Definiert die vier Elemente im Spiel.
-WERTE = ["7", "8", "9", "10", "Bube", "Dame", "König", "Ass"]  # Definiert die möglichen Werte der Karten.
+WERTE = ["1", "2","3", "4", "5", "6","7", "8", "9", "10", "Bube", "Dame", "König", "Ass"]  # Definiert die möglichen Werte der Karten.
 
 # Hierarchie der Elemente, um zu bestimmen, welches Element welches schlägt.
 ELEMENT_HIERARCHIE = {
@@ -178,8 +178,8 @@ def spiele_gegen_ki():
     gegner_hand = deck[4:8]  # Die nächsten 4 Karten gehen an die KI.
     talon = deck[8:]  # Der Rest bildet den Stapel für die verbleibenden Karten (Talon).
 
-    spieler_token = 5  # Der Spieler startet mit 5 Tokens.
-    gegner_token = 5  # Die KI startet mit 5 Tokens.
+    spieler_token = 2  # Der Spieler startet mit 5 Tokens.
+    gegner_token = 2  # Die KI startet mit 5 Tokens.
 
     while spieler_token > 0 and gegner_token > 0 and (spieler_hand or gegner_hand):
         # Zeigt den aktuellen Spielstand an.

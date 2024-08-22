@@ -54,27 +54,29 @@ def erstelle_modell():
 
 # Überprüfen, ob ein bereits trainiertes Modell existiert
 modell_pfad_neu = "Simulationen/elementar_schlacht_modell.keras"
-if os.path.exists(modell_pfad_neu):
-    modell = load_model(modell_pfad_neu)  # Lädt das vorhandene Modell, wenn es existiert.
-    optimizer = Adam(learning_rate=0.001)
-    modell.compile(optimizer=optimizer,
-                   loss='sparse_categorical_crossentropy',
-                   metrics=['accuracy'])
-    print("Modell geladen und wird weitertrainiert.")
-else:
-    modell = erstelle_modell()  # Erstellt ein neues Modell, wenn kein vorhandenes Modell gefunden wird.
-    print("Neues Modell erstellt.")
 
-# Lernrate automatisch anpassen, wenn keine Verbesserung auftritt
-reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, min_lr=0.00001, verbose=1)
+for i in range(40):  # Schleife, um das Training zweimal durchzuführen
+    if os.path.exists(modell_pfad_neu):
+        modell = load_model(modell_pfad_neu)  # Lädt das vorhandene Modell, wenn es existiert.
+        optimizer = Adam(learning_rate=0.001)
+        modell.compile(optimizer=optimizer,
+                       loss='sparse_categorical_crossentropy',
+                       metrics=['accuracy'])
+        print(f"Modell geladen und wird weitertrainiert. Durchlauf {i+1}")
+    else:
+        modell = erstelle_modell()  # Erstellt ein neues Modell, wenn kein vorhandenes Modell gefunden wird.
+        print(f"Neues Modell erstellt. Durchlauf {i+1}")
 
-# Modell trainieren mit dem Callback zur Reduzierung der Lernrate
-modell.fit(X_train, y_train, epochs=50, validation_data=(X_test, y_test), callbacks=[reduce_lr])
+    # Lernrate automatisch anpassen, wenn keine Verbesserung auftritt
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, min_lr=0.00001, verbose=1)
 
-# Speichern des Modells im Keras-Format
-modell.save(modell_pfad_neu)
-print(f"Modell gespeichert unter: {modell_pfad_neu}")
+    # Modell trainieren mit dem Callback zur Reduzierung der Lernrate
+    modell.fit(X_train, y_train, epochs=80, validation_data=(X_test, y_test), callbacks=[reduce_lr])
+
+    # Speichern des Modells im Keras-Format
+    modell.save(modell_pfad_neu)
+    print(f"Modell gespeichert unter: {modell_pfad_neu} nach Durchlauf {i+1}")
 
 # Bewertung des Modells auf den Testdaten
 test_loss, test_acc = modell.evaluate(X_test, y_test)
-print(f"Testgenauigkeit: {test_acc:.4f}")
+print(f"Testgenauigkeit nach dem zweiten Durchlauf: {test_acc:.4f}")

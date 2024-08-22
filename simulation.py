@@ -3,7 +3,7 @@ import random  # Importiert das Modul zur Generierung von Zufallszahlen und zuf�
 
 # Definition der Karten und Elemente
 ELEMENTE = ["Feuer", "Wasser", "Erde", "Luft"]  # Definiert die vier Elemente im Spiel.
-WERTE = ["7", "8", "9", "10", "Bube", "Dame", "König", "Ass"]  # Definiert die möglichen Werte der Karten.
+WERTE = ["1", "2","3", "4", "5", "6","7", "8", "9", "10", "Bube", "Dame", "König", "Ass"]  # Definiert die möglichen Werte der Karten.
 ANZAHL_ELEMENTAR_PUNKTE = 5  # Die Anzahl der Elementar-Punkte, mit denen jeder Spieler startet.
 
 def deck_generieren():
