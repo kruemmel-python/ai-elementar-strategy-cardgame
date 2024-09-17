@@ -1,155 +1,132 @@
-import os  # Importiert das os-Modul für Betriebssystemoperationen.
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Unterdrückt unnötige TensorFlow-Ausgaben in der Konsole.
+import os
+import time  # Für Zeitverzögerung
+import random
+import pandas as pd
+from tensorflow.keras.models import load_model
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
 
-import random  # Importiert das random-Modul für die Generierung von Zufallszahlen.
-import pandas as pd  # Importiert Pandas zur Arbeit mit Daten in Tabellenform.
-from tensorflow.keras.models import load_model  # Importiert die Funktion zum Laden eines Keras-Modells.
-from sklearn.preprocessing import LabelEncoder  # Importiert den LabelEncoder, um kategorische Daten in numerische Werte umzuwandeln.
-import numpy as np  # Importiert NumPy für numerische Operationen und die Arbeit mit Arrays.
+ELEMENTE = ["Feuer", "Wasser", "Erde", "Luft"]
+WERTE = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Bube", "Dame", "König", "Ass"]
 
-# Definition der Karten und Elemente
-ELEMENTE = ["Feuer", "Wasser", "Erde", "Luft"]  # Definiert die vier Elemente im Spiel.
-WERTE = ["1", "2","3", "4", "5", "6","7", "8", "9", "10", "Bube", "Dame", "König", "Ass"]  # Definiert die möglichen Werte der Karten.
-
-# Hierarchie der Elemente, um zu bestimmen, welches Element welches schlägt.
 ELEMENT_HIERARCHIE = {
-    "Wasser": "Feuer",  # Wasser schlägt Feuer.
-    "Feuer": "Erde",    # Feuer schlägt Erde.
-    "Erde": "Luft",     # Erde schlägt Luft.
-    "Luft": "Wasser"    # Luft schlägt Wasser.
+    "Wasser": {"Feuer": 3, "Erde": 1, "Luft": -3},
+    "Feuer": {"Erde": 3, "Luft": 1, "Wasser": -3},
+    "Erde": {"Luft": 3, "Wasser": 1, "Feuer": -3},
+    "Luft": {"Wasser": 3, "Feuer": 1, "Erde": -3}
 }
 
-# ANSI-Farbcodes für die farbige Darstellung in der Konsole
-FARBE_SPIELER = "\033[96m"  # Cyan für Spieleraktionen.
-FARBE_KI = "\033[93m"  # Gelb für KI-Aktionen.
-FARBE_GEWINNER_SPIELER = "\033[92m"  # Grün, wenn der Spieler gewinnt.
-FARBE_GEWINNER_KI = "\033[91m"  # Rot, wenn die KI gewinnt.
-FARBE_STAND = "\033[97m"  # Weiß für allgemeine Informationen und Spielstände.
-FARBE_RESET = "\033[0m"  # Setzt die Farbe zurück auf die Standardfarbe.
+FARBE_SPIELER = "\033[96m"
+FARBE_KI = "\033[93m"
+FARBE_GEWINNER_SPIELER = "\033[92m"
+FARBE_GEWINNER_KI = "\033[91m"
+FARBE_STAND = "\033[97m"
+FARBE_RESET = "\033[0m"
 
-# LabelEncoder für die Karten und Gewinner, um sie in numerische Werte umzuwandeln, die das Modell versteht.
+# Kartenkodierung
 label_encoder_karten = LabelEncoder()
 label_encoder_karten.fit([f"{element} {wert}" for element in ELEMENTE for wert in WERTE])
 
-# Laden des zuvor trainierten KI-Modells
+# Modell laden
 modell_pfad = "Simulationen/elementar_schlacht_modell.keras"
-modell = load_model(modell_pfad)  # Das Modell wird geladen, um Vorhersagen treffen zu können.
+modell = load_model(modell_pfad)
 
 def deck_generieren():
-    """
-    Generiert ein gemischtes Kartendeck.
+    deck = [(element, wert) for element in ELEMENTE for wert in WERTE]
+    random.shuffle(deck)
+    return deck
 
-    Returns:
-        list: Ein gemischtes Deck von Karten, wobei jede Karte eine Kombination aus Element und Wert ist.
-    """
-    deck = [(element, wert) for element in ELEMENTE for wert in WERTE]  # Erstellt das Deck durch Kombination der Elemente und Werte.
-    random.shuffle(deck)  # Mischt das Deck, um die Reihenfolge der Karten zufällig zu machen.
-    return deck  # Gibt das gemischte Deck zurück.
-
-def bestimme_gewinner(spieler_karte, gegner_karte):
-    """
-    Bestimmt den Gewinner eines Schlages basierend auf den Werten der Karten und der Element-Hierarchie.
-
-    Args:
-        spieler_karte (tuple): Die Karte des Spielers als (Element, Wert).
-        gegner_karte (tuple): Die Karte des Gegners als (Element, Wert).
-
-    Returns:
-        str: Der Gewinner des Schlages ("spieler", "gegner" oder "unentschieden").
-    """
-    spieler_element, spieler_wert = spieler_karte
+def berechne_gesamtwert(karte, gegner_karte):
+    element, wert = karte
     gegner_element, gegner_wert = gegner_karte
+    wert_index = WERTE.index(wert)
 
-    spieler_wert_index = WERTE.index(spieler_wert)
-    gegner_wert_index = WERTE.index(gegner_wert)
-
-    # Vergleich der Elemente, wenn sie unterschiedlich sind
-    if spieler_element != gegner_element:
-        if ELEMENT_HIERARCHIE[spieler_element] == gegner_element:
-            # Spieler-Element ist schwächer, könnte aber aufgrund des Wertes gewinnen.
-            if spieler_wert_index < 4 and gegner_wert_index > 4:  # Spieler-Zahl < 5, Gegner-Zahl > 5
-                return "gegner"
-            elif spieler_wert_index > 4 and gegner_wert_index < 4:  # Spieler-Zahl > 5, Gegner-Zahl < 5
-                return "spieler"
-            else:
-                return "gegner"  # Normalerweise gewinnt das stärkere Element.
-        elif ELEMENT_HIERARCHIE[gegner_element] == spieler_element:
-            # Gegner-Element ist schwächer, könnte aber aufgrund des Wertes gewinnen.
-            if gegner_wert_index < 4 and spieler_wert_index > 4:  # Gegner-Zahl < 5, Spieler-Zahl > 5
-                return "spieler"
-            elif gegner_wert_index > 4 and spieler_wert_index < 4:  # Gegner-Zahl > 5, Spieler-Zahl < 5
-                return "gegner"
-            else:
-                return "spieler"  # Normalerweise gewinnt das stärkere Element.
-        else:
-            if spieler_wert_index > gegner_wert_index:
-                return "spieler"  # Spieler gewinnt, wenn sein Kartenwert höher ist.
-            elif gegner_wert_index > spieler_wert_index:
-                return "gegner"  # Gegner gewinnt, wenn sein Kartenwert höher ist.
-            else:
-                return "unentschieden"  # Es ist ein Unentschieden, wenn beide Karten gleich hoch sind.
+    if gegner_element in ELEMENT_HIERARCHIE[element]:
+        element_bonus = ELEMENT_HIERARCHIE[element][gegner_element]
     else:
-        # Wenn die Elemente gleich sind, gewinnt die Karte mit dem höheren Wert.
-        if spieler_wert_index > gegner_wert_index:
-            return "spieler"
-        elif gegner_wert_index > spieler_wert_index:
-            return "gegner"
-        else:
-            return "unentschieden"
+        element_bonus = 0
 
-def wende_element_effekt_an(winner, element, spieler_token, gegner_token, spieler_hand, gegner_hand, talon):
-    """
-    Wendet die Effekte des Elements an, basierend auf dem Gewinner des Schlages.
+    gesamtwert = wert_index + element_bonus
+    return gesamtwert, element_bonus
 
-    Args:
-        winner (str): Der Gewinner des Schlages ("spieler" oder "gegner").
-        element (str): Das Element der Karte, die den Schlag gewonnen hat.
-        spieler_token (int): Die aktuelle Anzahl der Tokens des Spielers.
-        gegner_token (int): Die aktuelle Anzahl der Tokens des Gegners.
-        spieler_hand (list): Die aktuelle Hand des Spielers.
-        gegner_hand (list): Die aktuelle Hand des Gegners.
-        talon (list): Der Stapel der verbleibenden Karten.
+def berechne_token_bonus(tokens):
+    if tokens <= 2:
+        return 0
+    elif tokens <= 5:
+        return 2
+    elif tokens <= 9:
+        return 4
+    else:
+        return 6
 
-    Returns:
-        tuple: Die aktualisierte Anzahl der Tokens für Spieler und Gegner.
-    """
+def drehe_symbol(sekunden):
+    animation = ['\\', '|', '/', '-']
+    for i in range(sekunden * 10):
+        print(f"\r{animation[i % len(animation)]} ", end="")
+        time.sleep(0.1)
+    print("\r", end="")  # Symbol entfernen
+
+def zeige_auswertung(spieler_karte, gegner_karte, spieler_token, gegner_token, spieler_gesamtwert, gegner_gesamtwert, spieler_bonus, gegner_bonus, spieler_elementbonus, gegner_elementbonus):
+    print("\n**********************************************************************************************************************************************")
+    print("Auswertung:")
+    print(f"Spieler spielt: {spieler_karte[0]} {spieler_karte[1]}")
+    print(f"Spieler Kartenwert = {WERTE.index(spieler_karte[1])} (Index von {spieler_karte[1]} in der Liste WERTE)")
+    print(f"Spieler Elementbonus = {spieler_elementbonus}")
+    print(f"Spieler hat {spieler_token} Tokens → Tokenbonus = {spieler_bonus}")
+    print(f"Gesamtwert Spieler = {WERTE.index(spieler_karte[1])} (Kartenwert) + {spieler_elementbonus} (Elementbonus) + {spieler_bonus} (Tokenbonus) = {spieler_gesamtwert}")
+
+    print(f"\nKI spielt: {gegner_karte[0]} {gegner_karte[1]}")
+    print(f"KI Kartenwert = {WERTE.index(gegner_karte[1])} (Index von {gegner_karte[1]} in der Liste WERTE)")
+    print(f"KI Elementbonus = {gegner_elementbonus}")
+    print(f"KI hat {gegner_token} Tokens → Tokenbonus = {gegner_bonus}")
+    print(f"Gesamtwert KI = {WERTE.index(gegner_karte[1])} (Kartenwert) + {gegner_elementbonus} (Elementbonus) + {gegner_bonus} (Tokenbonus) = {gegner_gesamtwert}")
+    print("************************************************************************************************************************************************\n")
+
+def bestimme_gewinner(spieler_karte, gegner_karte, spieler_token, gegner_token):
+    spieler_gesamtwert, spieler_elementbonus = berechne_gesamtwert(spieler_karte, gegner_karte)
+    spieler_bonus = berechne_token_bonus(spieler_token)
+    spieler_gesamtwert += spieler_bonus
+
+    gegner_gesamtwert, gegner_elementbonus = berechne_gesamtwert(gegner_karte, spieler_karte)
+    gegner_bonus = berechne_token_bonus(gegner_token)
+    gegner_gesamtwert += gegner_bonus
+
+    print("Spiel wird analysiert, bitte warten....")
+    drehe_symbol(3)
+
+    zeige_auswertung(spieler_karte, gegner_karte, spieler_token, gegner_token, spieler_gesamtwert, gegner_gesamtwert, spieler_bonus, gegner_bonus, spieler_elementbonus, gegner_elementbonus)
+
+    if spieler_gesamtwert > gegner_gesamtwert:
+        return "spieler"
+    elif gegner_gesamtwert > spieler_gesamtwert:
+        return "gegner"
+    else:
+        return "unentschieden"
+
+def wende_element_effekt_an(winner, element, spieler_token, gegner_token):
     print(f"{FARBE_STAND}Vor dem Effekt: Spieler-Tokens: {spieler_token}, KI-Tokens: {gegner_token}{FARBE_RESET}")
     if element == "Feuer" and winner == "spieler":
-        gegner_token -= 1  # Feuer reduziert die Tokens des Gegners um 1.
+        gegner_token -= 1
     elif element == "Wasser" and winner == "spieler":
-        spieler_token += 1  # Wasser erhöht die Tokens des Spielers um 1.
-        gegner_token -= 1  # Wasser reduziert die Tokens des Gegners um 1.
+        spieler_token += 1
+        gegner_token -= 1
     elif element == "Erde" and winner == "spieler":
-        spieler_token += 1  # Erde erhöht die Tokens des Spielers um 1.
+        spieler_token += 1
     elif element == "Luft" and winner == "spieler":
-        spieler_token += 2  # Luft gibt dem Spieler 2 zusätzliche Tokens.
-        print(f"{FARBE_SPIELER}Du erhältst 2 zusätzliche Tokens!{FARBE_RESET}")
+        spieler_token += 2
     elif element == "Feuer" and winner == "gegner":
-        spieler_token -= 1  # Feuer reduziert die Tokens des Spielers um 1.
+        spieler_token -= 1
     elif element == "Wasser" and winner == "gegner":
-        gegner_token += 1  # Wasser erhöht die Tokens des Gegners um 1.
-        spieler_token -= 1  # Wasser reduziert die Tokens des Spielers um 1.
+        gegner_token += 1
+        spieler_token -= 1
     elif element == "Erde" and winner == "gegner":
-        gegner_token += 1  # Erde erhöht die Tokens des Gegners um 1.
+        gegner_token += 1
     elif element == "Luft" and winner == "gegner":
-        gegner_token += 2  # Luft gibt der KI 2 zusätzliche Tokens.
-        print(f"{FARBE_KI}Die KI erhält 2 zusätzliche Tokens!{FARBE_RESET}")
+        gegner_token += 2
     print(f"{FARBE_STAND}Nach dem Effekt: Spieler-Tokens: {spieler_token}, KI-Tokens: {gegner_token}{FARBE_RESET}")
     return spieler_token, gegner_token
 
 def ki_waehlt_karte(gegner_hand, spieler_karte, spieler_token, gegner_token):
-    """
-    Wählt die beste Karte für die KI basierend auf dem Modell.
-
-    Args:
-        gegner_hand (list): Die aktuelle Hand der KI.
-        spieler_karte (tuple): Die Karte, die der Spieler gespielt hat.
-        spieler_token (int): Die aktuelle Anzahl der Tokens des Spielers.
-        gegner_token (int): Die aktuelle Anzahl der Tokens der KI.
-
-    Returns:
-        tuple: Die Karte, die die KI spielen wird.
-    """
     beste_karte = None
     beste_wahrscheinlichkeit = -1
 
@@ -158,41 +135,40 @@ def ki_waehlt_karte(gegner_hand, spieler_karte, spieler_token, gegner_token):
         gegner_karte_code = label_encoder_karten.transform([f"{gegner_karte[0]} {gegner_karte[1]}"])[0]
 
         features = np.array([[spieler_karte_code, gegner_karte_code, spieler_token, gegner_token]])
-
         vorhersage = modell.predict(features)
         wahrscheinlichkeit = vorhersage[0][0]
 
-        if wahrscheinlichkeit > beste_wahrscheinlichkeit:
+        if wahrscheinlichkeit > beste_wahrscheinlichkeit and wahrscheinlichkeit > 0.5:
             beste_wahrscheinlichkeit = wahrscheinlichkeit
             beste_karte = gegner_karte
 
-    return beste_karte  # Gibt die beste Karte zurück, die die KI spielen sollte.
+    if beste_karte is None:
+        beste_karte = random.choice(gegner_hand)
+
+    print("\nKI überlegt...")
+    drehe_symbol(3)
+
+    print(f"{FARBE_KI}KI spielt: {beste_karte} mit einer Wahrscheinlichkeit von {beste_wahrscheinlichkeit:.2f} zu gewinnen.{FARBE_RESET}")
+    return beste_karte
 
 def spiele_gegen_ki():
-    """
-    Startet ein Spiel gegen die KI, indem der Spieler und die KI abwechselnd Karten spielen.
-    Das Spiel endet, wenn einer der Spieler keine Tokens mehr hat oder keine Karten mehr übrig sind.
-    """
-    deck = deck_generieren()  # Generiert ein gemischtes Deck.
-    spieler_hand = deck[:4]  # Die ersten 4 Karten gehen an den Spieler.
-    gegner_hand = deck[4:8]  # Die nächsten 4 Karten gehen an die KI.
-    talon = deck[8:]  # Der Rest bildet den Stapel für die verbleibenden Karten (Talon).
-
-    spieler_token = 2  # Der Spieler startet mit 5 Tokens.
-    gegner_token = 2  # Die KI startet mit 5 Tokens.
+    deck = deck_generieren()
+    spieler_hand = deck[:4]
+    gegner_hand = deck[4:8]
+    talon = deck[8:]
+    spieler_token = 5
+    gegner_token = 5
 
     while spieler_token > 0 and gegner_token > 0 and (spieler_hand or gegner_hand):
-        # Zeigt den aktuellen Spielstand an.
         print(f"{FARBE_STAND}\nDeine Karten: {spieler_hand}{FARBE_RESET}")
         print(f"{FARBE_STAND}Deine Tokens: {spieler_token}, KI-Tokens: {gegner_token}{FARBE_RESET}")
 
-        if not spieler_hand:  # Überprüft, ob der Spieler noch Karten hat.
+        if not spieler_hand:
             print(f"{FARBE_STAND}Du hast keine Karten mehr.{FARBE_RESET}")
             break
 
         while True:
             try:
-                # Spieler wählt eine Karte durch Eingabe der Indexposition.
                 karten_auswahl = int(input(f"{FARBE_SPIELER}Wähle eine Karte (1-{len(spieler_hand)}): {FARBE_RESET}")) - 1
                 if 0 <= karten_auswahl < len(spieler_hand):
                     spieler_karte = spieler_hand.pop(karten_auswahl)
@@ -200,17 +176,16 @@ def spiele_gegen_ki():
                 else:
                     print(f"{FARBE_SPIELER}Ungültige Auswahl.{FARBE_RESET}")
             except ValueError:
-                print(f"{FARBE_SPIELER}Ungültige Eingabe. Bitte eine Zahl eingeben.{FARBE_RESET}")
+                print(f"{FARFE_SPIELER}Ungültige Eingabe. Bitte eine Zahl eingeben.{FARBE_RESET}")
 
-        if gegner_hand:  # Überprüft, ob die KI noch Karten hat.
+        if gegner_hand:
             gegner_karte = ki_waehlt_karte(gegner_hand, spieler_karte, spieler_token, gegner_token)
             gegner_hand.remove(gegner_karte)
-            print(f"{FARBE_KI}KI spielt: {gegner_karte}{FARBE_RESET}")
         else:
             print(f"{FARBE_KI}Die KI hat keine Karten mehr.{FARBE_RESET}")
             break
 
-        winner = bestimme_gewinner(spieler_karte, gegner_karte)
+        winner = bestimme_gewinner(spieler_karte, gegner_karte, spieler_token, gegner_token)
         if winner == "spieler":
             print(f"{FARBE_GEWINNER_SPIELER}Der Gewinner des Schlages ist: {winner}{FARBE_RESET}")
         elif winner == "gegner":
@@ -218,21 +193,18 @@ def spiele_gegen_ki():
         else:
             print(f"{FARBE_STAND}Der Schlag endet unentschieden.{FARBE_RESET}")
 
-        # Anwenden der Effekte basierend auf dem Element der Karte.
         spieler_token, gegner_token = wende_element_effekt_an(
-            winner, spieler_karte[0], spieler_token, gegner_token, spieler_hand, gegner_hand, talon
+            winner, spieler_karte[0], spieler_token, gegner_token
         )
 
-        if talon:  # Karten nachziehen, wenn noch Karten im Talon sind.
+        if talon:
             if len(spieler_hand) < 4 and talon:
                 spieler_hand.append(talon.pop())
             if len(gegner_hand) < 4 and talon:
                 gegner_hand.append(talon.pop())
 
-        # Zeigt die aktualisierte Hand des Spielers an.
         print(f"{FARBE_STAND}\nDeine aktualisierten Karten: {spieler_hand}{FARBE_RESET}")
 
-    # Spielende
     if spieler_token > gegner_token:
         print(f"{FARBE_GEWINNER_SPIELER}\nGlückwunsch! Du hast gegen die KI gewonnen!{FARBE_RESET}")
     elif gegner_token > spieler_token:
@@ -241,4 +213,4 @@ def spiele_gegen_ki():
         print(f"{FARBE_STAND}\nDas Spiel endet in einem Unentschieden.{FARBE_RESET}")
 
 if __name__ == "__main__":
-    spiele_gegen_ki()  # Startet das Spiel gegen die KI.
+    spiele_gegen_ki()
