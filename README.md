@@ -148,5 +148,5 @@ python spiel.py
 
 ## Lizenz
 
-Dieses Projekt steht unter der [MIT-Lizenz](LICENSE). Siehe die `LICENSE`-Datei für weitere Details.
+Dieses Projekt steht unter der [MIT-Lizenz]([LICENSE](https://github.com/kruemmel-python/ai-elementar-strategy-cardgame/blob/main/LICENSE.md)). Siehe die `LICENSE`-Datei für weitere Details.
 
