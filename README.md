@@ -1,4 +1,5 @@
 # Elementar-Schlacht
+![image](https://github.com/user-attachments/assets/1e42957f-e25b-4d47-94e0-2ffebea1ef23)
 
 **Elementar-Schlacht** ist ein strategisches Kartenspiel, bei dem Spieler als Elementarmagier gegeneinander antreten und die Kräfte der vier Elemente (Feuer, Wasser, Erde, Luft) nutzen, um ihre Gegner zu besiegen. Das Spiel kann gegen eine KI gespielt werden, die mit einem neuronalen Netzwerk trainiert wurde.
 
@@ -55,6 +56,9 @@ Ziel des Spiels ist es, als letzter Magier oder letzte Magierin übrig zu bleibe
    - Wenn die Elemente gleich sind, gewinnt die Karte mit dem höheren Zahlenwert.
    - Elementboni: Jeder Schlag erhält einen Elementbonus (oder -malus), basierend auf der Interaktion der Elemente. Ein direktes Übertrumpfen führt zu einem größeren Bonus (z.B. +3), während neutrale Interaktionen kleinere Boni (z.B. +1) oder Malusse (z.B. -1) erhalten.
    - Auch die Anzahl der Tokens hat einen Einfluss auf das Ergebnis. Spieler und KI erhalten Tokenboni, die ihren Gesamtwert im Spiel beeinflussen.
+  
+   - ![image](https://github.com/user-attachments/assets/90a915e1-611b-4d6c-99f5-975edbbe1496)
+
 
 4. **Elementareffekte anwenden:** 
    - Der Gewinner des Schlages wendet den Effekt seines Elements an:
