@@ -176,8 +176,5 @@ python spiel.py
 - **Erweiterte KI:** Verbesserung des KI-Modells für eine stärkere Herausforderung.
 - **Neue Karten und Elemente:** Einführung neuer Kartentypen und -effekte, um das Spiel noch spannender zu gestalten.
 
-## Lizenz
 
-Dieses Projekt steht unter der [MIT-Lizenz]([LICENSE](https://
 
-github.com/kruemmel-python/ai-elementar-strategy-cardgame/blob/main/LICENSE.md)). Siehe die `LICENSE`-Datei für weitere Details.
