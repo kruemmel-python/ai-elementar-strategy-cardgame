@@ -1,5 +1,5 @@
 
-# Elementar-Schlacht
+# Elementar-Schlacht (Python 3.12.5)
 
 
 **Elementar-Schlacht** ist ein strategisches Kartenspiel, bei dem Spieler als Elementarmagier gegeneinander antreten und die Kräfte der sieben Elemente (Feuer, Wasser, Erde, Luft, Blitz, Eis, Magie) nutzen, um ihre Gegner zu besiegen. Das Spiel kann gegen eine KI gespielt werden, die mit einem neuronalen Netzwerk trainiert wurde.
