@@ -1,112 +1,105 @@
-import csv  # Importiert das Modul zum Arbeiten mit CSV-Dateien.
-import random  # Importiert das Modul zur Generierung von Zufallszahlen und zufälligen Auswahlmöglichkeiten.
+import csv
+import random
+from pathlib import Path
+import logging
 
-# Definition der Karten, Elemente, Helden und Artefakte
+# Logging konfigurieren
+LOG_DATEI = "simulationen.log"
+logging.basicConfig(filename=LOG_DATEI, level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Konstanten definieren
 ELEMENTE = ["Feuer", "Wasser", "Erde", "Luft", "Blitz", "Eis", "Magie"]
 WERTE = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Bube", "Dame", "König", "Ass"]
 ANZAHL_ELEMENTAR_PUNKTE = 5
 HELDEN = ["Drache", "Zauberer"]
 ARTEFAKTE = ["Zauberstab"]
-
-# Wettereffekte
-WETTEREFFEKT = {"Regen": {"Wasser": 1, "Feuer": -1}, "Windsturm": {"Luft": 2, "Erde": -1}, "Erdbeben": {}}
+WETTEREFFEKTE = {"Regen": {"Wasser": 1, "Feuer": -1}, "Windsturm": {"Luft": 2, "Erde": -1}, "Erdbeben": {}}
+SIMULATIONEN_VERZEICHNIS = "Simulationen"
+SPIELDATEN_DATEI = Path(SIMULATIONEN_VERZEICHNIS) / "spieldaten.csv"
+ANZAHL_STARTHANDKARTEN = 4
 
 def deck_generieren():
+    """Generiert ein gemischtes Deck aus Elementen und Werten."""
     deck = [(element, wert) for element in ELEMENTE for wert in WERTE]
     random.shuffle(deck)
+    logging.info("Neues Deck generiert.")
     return deck
 
 def zufaelliges_wetter():
-    wetter = random.choice(list(WETTEREFFEKT.keys()))
-    return wetter, WETTEREFFEKT[wetter]
+    """Wählt zufällig ein Wetterereignis aus."""
+    wetter = random.choice(list(WETTEREFFEKTE.keys()))
+    logging.info(f"Zufälliges Wetter gewählt: {wetter}")
+    return wetter, WETTEREFFEKTE[wetter]
 
-def bestimme_gewinner(spieler_karte, gegner_karte, spieler_token, gegner_token, wettereffekt):
+def bestimme_gewinner(spieler_karte, gegner_karte, wettereffekt):
+    """Bestimmt den Gewinner eines Kampfes basierend auf Kartenwert und Wettereffekten."""
     spieler_element, spieler_wert = spieler_karte
     gegner_element, gegner_wert = gegner_karte
     spieler_wert_index = WERTE.index(spieler_wert)
     gegner_wert_index = WERTE.index(gegner_wert)
 
-    # Elementboni basierend auf dem Wettereffekt hinzufügen
     spieler_bonus = wettereffekt.get(spieler_element, 0)
     gegner_bonus = wettereffekt.get(gegner_element, 0)
 
-    # Vergleich basierend auf Kartenwert und Boni
     gesamtwert_spieler = spieler_wert_index + spieler_bonus
     gesamtwert_gegner = gegner_wert_index + gegner_bonus
 
     if gesamtwert_spieler > gesamtwert_gegner:
+        logging.debug(f"Spieler gewinnt mit {spieler_karte} (Gesamtwert: {gesamtwert_spieler}) gegen {gegner_karte} (Gesamtwert: {gesamtwert_gegner}).")
         return "spieler"
     elif gesamtwert_gegner > gesamtwert_spieler:
+        logging.debug(f"Gegner gewinnt mit {gegner_karte} (Gesamtwert: {gesamtwert_gegner}) gegen {spieler_karte} (Gesamtwert: {gesamtwert_spieler}).")
         return "gegner"
     else:
+        logging.debug(f"Unentschieden zwischen Spieler ({spieler_karte}, Gesamtwert: {gesamtwert_spieler}) und Gegner ({gegner_karte}, Gesamtwert: {gesamtwert_gegner}).")
         return "unentschieden"
 
-def wende_element_effekt_an(winner, element, spieler_token, gegner_token):
-    """
-    Wendet die Effekte des Elementes an, basierend auf dem Gewinner des Schlages.
-
-    Args:
-        winner (str): Der Gewinner des Schlages ("spieler" oder "gegner").
-        element (str): Das Element der Karte, die den Schlag gewonnen hat.
-        spieler_token (int): Die aktuelle Anzahl der Tokens des Spielers.
-        gegner_token (int): Die aktuelle Anzahl der Tokens des Gegners.
-
-    Returns:
-        tuple: Die aktualisierte Anzahl der Tokens für Spieler und Gegner.
-    """
-    if element == "Feuer" and winner == "spieler":
-        gegner_token -= 1  # Feuer verringert die Tokens des Gegners.
-    elif element == "Wasser" and winner == "spieler":
-        spieler_token += 1  # Wasser erhöht die Tokens des Spielers.
-        gegner_token -= 1  # Wasser verringert die Tokens des Gegners.
-    elif element == "Erde" and winner == "spieler":
-        spieler_token += 1  # Erde erhöht die Tokens des Spielers.
-    elif element == "Luft" and winner == "spieler":
-        pass  # Luft hat in dieser Implementierung keinen Effekt.
-
-    elif element == "Feuer" and winner == "gegner":
-        spieler_token -= 1  # Feuer verringert die Tokens des Spielers.
-    elif element == "Wasser" and winner == "gegner":
-        gegner_token += 1  # Wasser erhöht die Tokens des Gegners.
-        spieler_token -= 1  # Wasser verringert die Tokens des Spielers.
-    elif element == "Erde" and winner == "gegner":
-        gegner_token += 1  # Erde erhöht die Tokens des Gegners.
-    elif element == "Luft" and winner == "gegner":
-        pass  # Luft hat in dieser Implementierung keinen Effekt.
-
-    return spieler_token, gegner_token  # Gibt die aktualisierten Token-Werte zurück.
-
-
+def wende_element_effekt_an(gewinner, element, spieler_token, gegner_token):
+    """Wendet Elementeffekte basierend auf dem Gewinner an."""
+    effekte = {
+        ("Feuer", "spieler"): lambda st, gt: (st, gt - 1),
+        ("Wasser", "spieler"): lambda st, gt: (st + 1, gt - 1),
+        ("Erde", "spieler"): lambda st, gt: (st + 1, gt),
+        ("Luft", "spieler"): lambda st, gt: (st, gt),
+        ("Feuer", "gegner"): lambda st, gt: (st - 1, gt),
+        ("Wasser", "gegner"): lambda st, gt: (st - 1, gt + 1),
+        ("Erde", "gegner"): lambda st, gt: (st, gt + 1),
+        ("Luft", "gegner"): lambda st, gt: (st, gt),
+    }
+    if (element, gewinner) in effekte:
+        spieler_token, gegner_token = effekte[(element, gewinner)](spieler_token, gegner_token)
+        logging.debug(f"Elementeffekt von {element} angewendet. Spieler-Token: {spieler_token}, Gegner-Token: {gegner_token}")
+    return spieler_token, gegner_token
 
 def simuliere_spiel():
+    """Simuliert ein einzelnes Spiel."""
     deck = deck_generieren()
-    spieler_hand = deck[:4]
-    gegner_hand = deck[4:8]
-    talon = deck[8:]
+    spieler_hand = deck[:ANZAHL_STARTHANDKARTEN]
+    gegner_hand = deck[ANZAHL_STARTHANDKARTEN:2 * ANZAHL_STARTHANDKARTEN]
+    talon = deck[2 * ANZAHL_STARTHANDKARTEN:]
     spieler_token = ANZAHL_ELEMENTAR_PUNKTE
     gegner_token = ANZAHL_ELEMENTAR_PUNKTE
     spieler_held = random.choice(HELDEN)
     gegner_held = random.choice(HELDEN)
     spiel_daten = []
 
+    logging.info(f"Starte ein neues Spiel. Spielerheld: {spieler_held}, Gegnerheld: {gegner_held}")
+
     while spieler_token > 0 and gegner_token > 0:
         wetter, wettereffekt = zufaelliges_wetter()
 
-        if spieler_hand:  
-            spieler_karte = random.choice(spieler_hand)
-            spieler_hand.remove(spieler_karte)
-        else:
+        if not spieler_hand or not gegner_hand:
+            logging.info("Spiel beendet, da ein Spieler keine Karten mehr hat.")
             break
 
-        if gegner_hand:  
-            gegner_karte = random.choice(gegner_hand)
-            gegner_hand.remove(gegner_karte)
-        else:
-            break
+        spieler_karte = random.choice(spieler_hand)
+        spieler_hand.remove(spieler_karte)
+        gegner_karte = random.choice(gegner_hand)
+        gegner_hand.remove(gegner_karte)
 
-        # Bestimme den Gewinner unter Einbezug von Wetter und Helden
-        winner = bestimme_gewinner(spieler_karte, gegner_karte, spieler_token, gegner_token, wettereffekt)
-        spieler_token, gegner_token = wende_element_effekt_an(winner, spieler_karte[0], spieler_token, gegner_token)
+        gewinner = bestimme_gewinner(spieler_karte, gegner_karte, wettereffekt)
+        spieler_token, gegner_token = wende_element_effekt_an(gewinner, spieler_karte[0], spieler_token, gegner_token)
 
         spiel_daten.append({
             "spieler_karte": f"{spieler_karte[0]} {spieler_karte[1]}",
@@ -116,30 +109,38 @@ def simuliere_spiel():
             "wetter": wetter,
             "spieler_held": spieler_held,
             "gegner_held": gegner_held,
-            "gewinner": winner
+            "gewinner": gewinner
         })
 
         if talon:
-            if len(spieler_hand) < 4:
+            if len(spieler_hand) < ANZAHL_STARTHANDKARTEN:
                 spieler_hand.append(talon.pop())
-            if len(gegner_hand) < 4:
+            if len(gegner_hand) < ANZAHL_STARTHANDKARTEN:
                 gegner_hand.append(talon.pop())
 
+    logging.info(f"Spiel beendet. Spieler-Token: {spieler_token}, Gegner-Token: {gegner_token}")
     return spiel_daten
 
-def speichere_spieldaten_in_csv(spiel_daten, dateiname="Simulationen/spieldaten.csv"):
+def speichere_spieldaten_in_csv(spiel_daten, dateiname):
+    """Speichert Spieldaten in einer CSV-Datei."""
     schluessel = spiel_daten[0].keys()
     with open(dateiname, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=schluessel)
         writer.writeheader()
         writer.writerows(spiel_daten)
+    logging.info(f"{len(spiel_daten)} Spielzüge in {dateiname} gespeichert.")
 
 def generiere_und_speichere_spiele(anzahl_spiele=10000):
+    """Generiert mehrere Spiele und speichert die Daten in einer CSV-Datei."""
+    Path(SIMULATIONEN_VERZEICHNIS).mkdir(parents=True, exist_ok=True)
     alle_spiel_daten = []
-    for _ in range(anzahl_spiele):
+    logging.info(f"Starte die Generierung von {anzahl_spiele} Spielen.")
+    for i in range(anzahl_spiele):
         spiel_daten = simuliere_spiel()
         alle_spiel_daten.extend(spiel_daten)
-    speichere_spieldaten_in_csv(alle_spiel_daten)
+        logging.info(f"Spiel {i + 1}/{anzahl_spiele} simuliert.")
+    speichere_spieldaten_in_csv(alle_spiel_daten, SPIELDATEN_DATEI)
+    logging.info(f"Alle {anzahl_spiele} Spiele simuliert und Daten gespeichert.")
 
-# Beispielaufruf zur Generierung und Speicherung von 10.000 Spielen
-generiere_und_speichere_spiele(10000)
+if __name__ == "__main__":
+    generiere_und_speichere_spiele(10000)
