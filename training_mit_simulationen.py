@@ -15,22 +15,22 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report
 from scikeras.wrappers import KerasClassifier
 
-# Logging konfigurieren
+# Configure logging
 LOG_DATEI = "training.log"
 logging.basicConfig(filename=LOG_DATEI, level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Konstanten definieren
+# Define constants
 ELEMENTE = ["Feuer", "Wasser", "Erde", "Luft", "Blitz", "Eis", "Magie"]
 CSV_DATEI = "Simulationen/spieldaten.csv"
 MODELL_PFAD = "Simulationen/elementar_schlacht_modell.keras"
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
-EPOCHS = 10  # Angepasst, da Hyperparameter-Optimierung implementiert ist
+EPOCHS = 10  # Adjusted since hyperparameter optimization is implemented
 BATCH_SIZE = 32
-HYPERPARAMETER_TUNING = False  # Standardmäßig deaktiviert
+HYPERPARAMETER_TUNING = False  # Default is disabled
 
-# Laden der Daten
+# Load data
 try:
     daten = pd.read_csv(CSV_DATEI, encoding='ISO-8859-1')
     logging.info(f"Daten erfolgreich von {CSV_DATEI} geladen.")
@@ -39,8 +39,17 @@ except FileNotFoundError:
     print(f"Fehler: Die Datei {CSV_DATEI} wurde nicht gefunden.")
     exit()
 
-# Datenvorverarbeitung
+# Data preprocessing
 def daten_vorverarbeitung(df):
+    """
+    Preprocesses the data by encoding categorical features and splitting the data into training and testing sets.
+
+    Args:
+        df (pd.DataFrame): The raw dataframe containing the game data.
+
+    Returns:
+        tuple: A tuple containing the encoded dataframe, labels, and encoders.
+    """
     df[['spieler_element', 'spieler_wert']] = df['spieler_karte'].str.split(expand=True)
     df[['gegner_element', 'gegner_wert']] = df['gegner_karte'].str.split(expand=True)
 
@@ -74,16 +83,25 @@ def daten_vorverarbeitung(df):
 
 daten_encoded, gewinner_labels, le_element, le_wert, ohe_wetter, ohe_held, le_gewinner = daten_vorverarbeitung(daten.copy())
 
-# Aufteilen der Daten
+# Split data
 X_train, X_test, y_train, y_test = train_test_split(daten_encoded, gewinner_labels, test_size=TEST_SIZE, random_state=RANDOM_STATE)
 
-# Funktion zur Erstellung der Kodierungstabelle
+# Function to create encoding tables
 def kodierungs_tabelle_erstellen(le_element, le_wert, ohe_wetter, ohe_held):
+    """
+    Creates and prints encoding tables for the categorical features.
+
+    Args:
+        le_element (LabelEncoder): Label encoder for elements.
+        le_wert (LabelEncoder): Label encoder for values.
+        ohe_wetter (OneHotEncoder): One-hot encoder for weather.
+        ohe_held (OneHotEncoder): One-hot encoder for heroes.
+    """
     element_df = pd.DataFrame({'Element': le_element.classes_, 'Kodiert als': le_element.transform(le_element.classes_)})
     wert_df = pd.DataFrame({'Wert': le_wert.classes_, 'Kodiert als': le_wert.transform(le_wert.classes_)})
     wetter_df = pd.DataFrame({'Wetter': ohe_wetter.categories_[0], 'Feature-Spalte': ohe_wetter.get_feature_names_out(['wetter'])})
 
-    # Stelle sicher, dass die Eingabefunktionen korrekt sind
+    # Ensure the input functions are correct
     helden_features = ohe_held.get_feature_names_out(['spieler_held', 'gegner_held'])
     helden_df = pd.DataFrame({'Spieler_Held': ohe_held.categories_[0], 'Feature-Spalte_Spieler': helden_features[:len(ohe_held.categories_[0])]})
     helden_df_gegner = pd.DataFrame({'Gegner_Held': ohe_held.categories_[1], 'Feature-Spalte_Gegner': helden_features[len(ohe_held.categories_[0]):]})
@@ -95,11 +113,24 @@ def kodierungs_tabelle_erstellen(le_element, le_wert, ohe_wetter, ohe_held):
     print("\nOne-Hot-Encoding für Helden (Gegner):\n", helden_df_gegner)
     logging.info("Kodierungstabellen erstellt und ausgegeben.")
 
-# Aufrufen der Funktion zur Erstellung der Kodierungstabelle
+# Call the function to create encoding tables
 kodierungs_tabelle_erstellen(le_element, le_wert, ohe_wetter, ohe_held)
 
-# Modell erstellen
+# Create model
 def erstelle_modell(input_dim, learning_rate=0.001, dropout_rate=0.2, units_dense1=128, units_dense2=64):
+    """
+    Creates a neural network model.
+
+    Args:
+        input_dim (int): The input dimension of the model.
+        learning_rate (float): The learning rate for the optimizer.
+        dropout_rate (float): The dropout rate for the dropout layers.
+        units_dense1 (int): The number of units in the first dense layer.
+        units_dense2 (int): The number of units in the second dense layer.
+
+    Returns:
+        Sequential: The compiled Keras model.
+    """
     optimizer = Adam(learning_rate=learning_rate)
     modell = Sequential([
         Dense(units_dense1, activation='relu', input_shape=(input_dim,)),
@@ -112,8 +143,23 @@ def erstelle_modell(input_dim, learning_rate=0.001, dropout_rate=0.2, units_dens
                    metrics=['accuracy'])
     return modell
 
-# Modeltraining mit optionaler Hyperparameter-Optimierung
+# Model training with optional hyperparameter optimization
 def trainiere_modell(modell_pfad, X_train, y_train, X_test, y_test, epochs=EPOCHS, batch_size=BATCH_SIZE):
+    """
+    Trains the model with optional hyperparameter optimization.
+
+    Args:
+        modell_pfad (str): The path to save the model.
+        X_train (pd.DataFrame): The training features.
+        y_train (pd.Series): The training labels.
+        X_test (pd.DataFrame): The testing features.
+        y_test (pd.Series): The testing labels.
+        epochs (int): The number of epochs for training.
+        batch_size (int): The batch size for training.
+
+    Returns:
+        Sequential: The trained Keras model.
+    """
     early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1)
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, min_lr=0.00001, verbose=1)
     callbacks = [early_stopping, reduce_lr]
@@ -123,7 +169,7 @@ def trainiere_modell(modell_pfad, X_train, y_train, X_test, y_test, epochs=EPOCH
         def create_model_for_tuning(learning_rate, dropout_rate, units_dense1, units_dense2):
             return erstelle_modell(X_train.shape[1], learning_rate=learning_rate, dropout_rate=dropout_rate, units_dense1=units_dense1, units_dense2=units_dense2)
 
-        model_for_tuning = KerasClassifier(model=create_model_for_tuning, verbose=0) # Erstellt den KerasClassifier
+        model_for_tuning = KerasClassifier(model=create_model_for_tuning, verbose=0) # Create the KerasClassifier
 
         param_grid = {
             'learning_rate': [0.001, 0.0001],
@@ -132,7 +178,7 @@ def trainiere_modell(modell_pfad, X_train, y_train, X_test, y_test, epochs=EPOCH
             'units_dense2': [64, 128]
         }
 
-        grid = GridSearchCV(estimator=model_for_tuning, param_grid=param_grid, cv=2, scoring='accuracy') # cv=2 für schnellere Demonstration
+        grid = GridSearchCV(estimator=model_for_tuning, param_grid=param_grid, cv=2, scoring='accuracy') # cv=2 for faster demonstration
         grid_result = grid.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, callbacks=callbacks, validation_data=(X_test, y_test))
 
         print("Beste Hyperparameter:", grid_result.best_params_)
@@ -147,13 +193,19 @@ def trainiere_modell(modell_pfad, X_train, y_train, X_test, y_test, epochs=EPOCH
             best_model = erstelle_modell(X_train.shape[1])
             logging.info("Neues Modell erstellt.")
         history = best_model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=epochs, batch_size=batch_size, callbacks=callbacks)
-        plot_training_history(history) # Visualisierung der Trainingsgeschichte
+        plot_training_history(history) # Visualization of the training history
 
     best_model.save(modell_pfad)
     logging.info(f"Modell gespeichert unter: {modell_pfad}")
     return best_model
 
 def plot_training_history(history):
+    """
+    Plots the training history of the model.
+
+    Args:
+        history (History): The training history object returned by the model's fit method.
+    """
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 2, 1)
     plt.plot(history.history['accuracy'], label='Trainingsgenauigkeit')
@@ -168,8 +220,16 @@ def plot_training_history(history):
     plt.title('Verlust über Epochen')
     plt.show()
 
-# Modellevaluation
+# Model evaluation
 def evaluiere_modell(modell, X_test, y_test):
+    """
+    Evaluates the model and prints the classification report.
+
+    Args:
+        modell (Sequential): The trained Keras model.
+        X_test (pd.DataFrame): The testing features.
+        y_test (pd.Series): The testing labels.
+    """
     test_loss, test_acc = modell.evaluate(X_test, y_test, verbose=0)
     print(f"Testgenauigkeit: {test_acc:.4f}")
     logging.info(f"Testgenauigkeit: {test_acc:.4f}")
@@ -179,13 +239,13 @@ def evaluiere_modell(modell, X_test, y_test):
     print(classification_report(y_test, y_pred))
     logging.info("Klassifikationsbericht erstellt und ausgegeben.")
 
-# Haupttrainingsschleife
+# Main training loop
 if __name__ == "__main__":
     logging.info("Starte den Trainingsprozess.")
     modell = trainiere_modell(MODELL_PFAD, X_train, y_train, X_test, y_test)
     logging.info("Training abgeschlossen.")
 
-    # Modellevaluation nach dem Training
+    # Model evaluation after training
     logging.info("Starte die Modellevaluation.")
     evaluiere_modell(modell, X_test, y_test)
     logging.info("Modellevaluation abgeschlossen.")
