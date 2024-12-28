@@ -1,3 +1,6 @@
+Die Spielergebnisse von 47 Runden
+**********************************************************************************************************************************************
+
 Du spielst mit dem Helden: Zauberer (3 Bonus auf Magie)!
 
 Deine Karten: [('Eis', '8'), ('Erde', '5'), ('Erde', 'König'), ('Luft', '2')]
