@@ -3,12 +3,12 @@ import random
 from pathlib import Path
 import logging
 
-# Logging konfigurieren
+# Configure logging
 LOG_DATEI = "simulationen.log"
 logging.basicConfig(filename=LOG_DATEI, level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Konstanten definieren
+# Define constants
 ELEMENTE = ["Feuer", "Wasser", "Erde", "Luft", "Blitz", "Eis", "Magie"]
 WERTE = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Bube", "Dame", "König", "Ass"]
 ANZAHL_ELEMENTAR_PUNKTE = 5
@@ -20,20 +20,40 @@ SPIELDATEN_DATEI = Path(SIMULATIONEN_VERZEICHNIS) / "spieldaten.csv"
 ANZAHL_STARTHANDKARTEN = 4
 
 def deck_generieren():
-    """Generiert ein gemischtes Deck aus Elementen und Werten."""
+    """
+    Generates a shuffled deck of cards consisting of elements and values.
+
+    Returns:
+        list: A list of tuples representing the shuffled deck of cards.
+    """
     deck = [(element, wert) for element in ELEMENTE for wert in WERTE]
     random.shuffle(deck)
     logging.info("Neues Deck generiert.")
     return deck
 
 def zufaelliges_wetter():
-    """Wählt zufällig ein Wetterereignis aus."""
+    """
+    Randomly selects a weather event.
+
+    Returns:
+        tuple: A tuple containing the selected weather event and its effects.
+    """
     wetter = random.choice(list(WETTEREFFEKTE.keys()))
     logging.info(f"Zufälliges Wetter gewählt: {wetter}")
     return wetter, WETTEREFFEKTE[wetter]
 
 def bestimme_gewinner(spieler_karte, gegner_karte, wettereffekt):
-    """Bestimmt den Gewinner eines Kampfes basierend auf Kartenwert und Wettereffekten."""
+    """
+    Determines the winner of a battle based on card values and weather effects.
+
+    Args:
+        spieler_karte (tuple): The player's card.
+        gegner_karte (tuple): The opponent's card.
+        wettereffekt (dict): The weather effects.
+
+    Returns:
+        str: The winner of the battle ("spieler", "gegner", or "unentschieden").
+    """
     spieler_element, spieler_wert = spieler_karte
     gegner_element, gegner_wert = gegner_karte
     spieler_wert_index = WERTE.index(spieler_wert)
@@ -56,7 +76,18 @@ def bestimme_gewinner(spieler_karte, gegner_karte, wettereffekt):
         return "unentschieden"
 
 def wende_element_effekt_an(gewinner, element, spieler_token, gegner_token):
-    """Wendet Elementeffekte basierend auf dem Gewinner an."""
+    """
+    Applies element effects based on the winner.
+
+    Args:
+        gewinner (str): The winner of the battle ("spieler" or "gegner").
+        element (str): The element of the card.
+        spieler_token (int): The player's elemental points.
+        gegner_token (int): The opponent's elemental points.
+
+    Returns:
+        tuple: The updated elemental points for the player and the opponent.
+    """
     effekte = {
         ("Feuer", "spieler"): lambda st, gt: (st, gt - 1),
         ("Wasser", "spieler"): lambda st, gt: (st + 1, gt - 1),
@@ -73,7 +104,12 @@ def wende_element_effekt_an(gewinner, element, spieler_token, gegner_token):
     return spieler_token, gegner_token
 
 def simuliere_spiel():
-    """Simuliert ein einzelnes Spiel."""
+    """
+    Simulates a single game.
+
+    Returns:
+        list: A list of dictionaries containing the game data for each turn.
+    """
     deck = deck_generieren()
     spieler_hand = deck[:ANZAHL_STARTHANDKARTEN]
     gegner_hand = deck[ANZAHL_STARTHANDKARTEN:2 * ANZAHL_STARTHANDKARTEN]
@@ -122,7 +158,13 @@ def simuliere_spiel():
     return spiel_daten
 
 def speichere_spieldaten_in_csv(spiel_daten, dateiname):
-    """Speichert Spieldaten in einer CSV-Datei."""
+    """
+    Saves game data to a CSV file.
+
+    Args:
+        spiel_daten (list): A list of dictionaries containing the game data.
+        dateiname (str): The name of the CSV file to save the data to.
+    """
     schluessel = spiel_daten[0].keys()
     with open(dateiname, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=schluessel)
@@ -131,7 +173,12 @@ def speichere_spieldaten_in_csv(spiel_daten, dateiname):
     logging.info(f"{len(spiel_daten)} Spielzüge in {dateiname} gespeichert.")
 
 def generiere_und_speichere_spiele(anzahl_spiele=10000):
-    """Generiert mehrere Spiele und speichert die Daten in einer CSV-Datei."""
+    """
+    Generates multiple games and saves the data to a CSV file.
+
+    Args:
+        anzahl_spiele (int): The number of games to generate. Default is 10000.
+    """
     Path(SIMULATIONEN_VERZEICHNIS).mkdir(parents=True, exist_ok=True)
     alle_spiel_daten = []
     logging.info(f"Starte die Generierung von {anzahl_spiele} Spielen.")
