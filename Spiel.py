@@ -31,36 +31,48 @@ FARBE_GEWINNER_KI = "\033[91m"
 FARBE_STAND = "\033[97m"
 FARBE_RESET = "\033[0m"
 
-# Stelle sicher, dass der LabelEncoder für die Karten die Elemente korrekt enthält
+# Ensure the LabelEncoder for cards includes the elements correctly
 label_encoder_karten = LabelEncoder()
 label_encoder_karten.fit(ELEMENTE)
 
-# Heldenkodierung (wichtig)
+# Hero encoding (important)
 label_encoder_held = LabelEncoder()
 label_encoder_held.fit(list(HELDEN.keys()))
 
-# One-Hot-Encoder für Helden
+# One-Hot-Encoder for heroes
 one_hot_encoder_held = OneHotEncoder(sparse_output=False)
 one_hot_encoder_held.fit(np.array(list(HELDEN.keys())).reshape(-1, 1))
 
-# Wetterkodierung
+# Weather encoding
 label_encoder_wetter = LabelEncoder()
 label_encoder_wetter.fit(["Regen", "Windsturm", "Erdbeben"])
 
-# Kartenkodierung für Werte
+# Card value encoding
 label_encoder_wert = LabelEncoder()
 label_encoder_wert.fit(WERTE)
 
-# Modell laden
+# Load model
 modell_pfad = "Simulationen/elementar_schlacht_modell.keras"
 modell = load_model(modell_pfad)
 
 def deck_generieren():
+    """
+    Generates a shuffled deck of cards consisting of elements and values.
+
+    Returns:
+        list: A list of tuples representing the shuffled deck of cards.
+    """
     deck = [(element, wert) for element in ELEMENTE for wert in WERTE]
     random.shuffle(deck)
     return deck
 
 def zufaelliges_wetter():
+    """
+    Randomly selects a weather event and prints it.
+
+    Returns:
+        dict: A dictionary representing the weather effects.
+    """
     wetter = random.choice(["Regen", "Windsturm", "Erdbeben"])
     print(f"{FARBE_STAND}Wetterereignis: {wetter}{FARBE_RESET}")
     if wetter == "Regen":
@@ -70,6 +82,12 @@ def zufaelliges_wetter():
     return {}
 
 def drehe_symbol(sekunden):
+    """
+    Displays a spinning symbol animation for a specified number of seconds.
+
+    Args:
+        sekunden (int): The number of seconds to display the animation.
+    """
     animation = ['\\', '|', '/', '-']
     for i in range(sekunden * 10):
         print(f"\r{animation[i % len(animation)]} ", end="")
@@ -77,17 +95,29 @@ def drehe_symbol(sekunden):
     print("\r", end="")
 
 def berechne_gesamtwert(karte, gegner_karte, spieler_held, gegner_held):
+    """
+    Calculates the total value of a card considering element and hero bonuses.
+
+    Args:
+        karte (tuple): The player's card.
+        gegner_karte (tuple): The opponent's card.
+        spieler_held (dict): The player's hero.
+        gegner_held (dict): The opponent's hero.
+
+    Returns:
+        tuple: The total value, element bonus, and hero bonus.
+    """
     element, wert = karte
     gegner_element, gegner_wert = gegner_karte
     wert_index = WERTE.index(wert)
 
-    # Berechne Elementbonus
+    # Calculate element bonus
     if gegner_element in ELEMENT_HIERARCHIE[element]:
         element_bonus = ELEMENT_HIERARCHIE[element][gegner_element]
     else:
         element_bonus = 0
 
-    # Berücksichtige Heldenbonus nur, wenn das gespielte Element dem des Helden entspricht
+    # Consider hero bonus only if the played element matches the hero's element
     helden_bonus = 0
     if spieler_held["Element"] == element:
         helden_bonus = spieler_held["Bonus"]
@@ -96,6 +126,15 @@ def berechne_gesamtwert(karte, gegner_karte, spieler_held, gegner_held):
     return gesamtwert, element_bonus, helden_bonus
 
 def berechne_token_bonus(tokens):
+    """
+    Calculates the token bonus based on the number of tokens.
+
+    Args:
+        tokens (int): The number of tokens.
+
+    Returns:
+        int: The token bonus.
+    """
     if tokens <= 2:
         return 0
     elif tokens <= 5:
@@ -106,6 +145,23 @@ def berechne_token_bonus(tokens):
         return 6
 
 def zeige_auswertung(spieler_karte, gegner_karte, spieler_token, gegner_token, spieler_gesamtwert, gegner_gesamtwert, spieler_bonus, gegner_bonus, spieler_elementbonus, gegner_elementbonus, spieler_heldenbonus, gegner_heldenbonus):
+    """
+    Displays the evaluation of the cards played by the player and the AI.
+
+    Args:
+        spieler_karte (tuple): The player's card.
+        gegner_karte (tuple): The AI's card.
+        spieler_token (int): The player's tokens.
+        gegner_token (int): The AI's tokens.
+        spieler_gesamtwert (int): The player's total value.
+        gegner_gesamtwert (int): The AI's total value.
+        spieler_bonus (int): The player's token bonus.
+        gegner_bonus (int): The AI's token bonus.
+        spieler_elementbonus (int): The player's element bonus.
+        gegner_elementbonus (int): The AI's element bonus.
+        spieler_heldenbonus (int): The player's hero bonus.
+        gegner_heldenbonus (int): The AI's hero bonus.
+    """
     print("\n**********************************************************************************************************************************************")
     print("Auswertung:")
     print(f"Spieler spielt: {spieler_karte[0]} {spieler_karte[1]}")
@@ -124,6 +180,20 @@ def zeige_auswertung(spieler_karte, gegner_karte, spieler_token, gegner_token, s
     print("************************************************************************************************************************************************\n")
 
 def bestimme_gewinner(spieler_karte, gegner_karte, spieler_token, gegner_token, spieler_held, gegner_held):
+    """
+    Determines the winner of a battle based on card values and bonuses.
+
+    Args:
+        spieler_karte (tuple): The player's card.
+        gegner_karte (tuple): The AI's card.
+        spieler_token (int): The player's tokens.
+        gegner_token (int): The AI's tokens.
+        spieler_held (str): The player's hero.
+        gegner_held (str): The AI's hero.
+
+    Returns:
+        str: The winner of the battle ("spieler", "gegner", or "unentschieden").
+    """
     spieler_gesamtwert, spieler_elementbonus, spieler_heldenbonus = berechne_gesamtwert(spieler_karte, gegner_karte, HELDEN[spieler_held], HELDEN[gegner_held])
     spieler_bonus = berechne_token_bonus(spieler_token)
     spieler_gesamtwert += spieler_bonus
@@ -145,6 +215,18 @@ def bestimme_gewinner(spieler_karte, gegner_karte, spieler_token, gegner_token, 
         return "unentschieden"
 
 def wende_element_effekt_an(winner, element, spieler_token, gegner_token):
+    """
+    Applies element effects based on the winner.
+
+    Args:
+        winner (str): The winner of the battle ("spieler" or "gegner").
+        element (str): The element of the card.
+        spieler_token (int): The player's elemental points.
+        gegner_token (int): The opponent's elemental points.
+
+    Returns:
+        tuple: The updated elemental points for the player and the opponent.
+    """
     print(f"{FARBE_STAND}Vor dem Effekt: Spieler-Tokens: {spieler_token}, KI-Tokens: {gegner_token}{FARBE_RESET}")
     if element == "Feuer" and winner == "spieler":
         gegner_token -= 1
@@ -168,6 +250,9 @@ def wende_element_effekt_an(winner, element, spieler_token, gegner_token):
     return spieler_token, gegner_token
 
 def spiele_gegen_ki():
+    """
+    Simulates a game against the AI.
+    """
     deck = deck_generieren()
     spieler_hand = deck[:4]
     gegner_hand = deck[4:8]
