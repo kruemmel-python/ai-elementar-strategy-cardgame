@@ -148,7 +148,7 @@ Um **Elementar-Schlacht** lokal auszuführen, führe die folgenden Schritte aus:
 ### 1. Simulation von Spielen
 Führe die Simulationen durch, um Daten zu generieren, die das Modell trainieren:
 ```bash
-python simulation.py
+python spiele_simulation.py
 ```
 
 ### 2. Training des Modells
